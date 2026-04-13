@@ -10,14 +10,13 @@
 
 Most AI coding tools are built around one assumption: you're always watching. Every tool call, every decision, every completion — the agent pings you, waits for you, interrupts you. Each exchange is small, but the cumulative cost is enormous: you never get more than a few minutes of unbroken attention.
 
-**vibe-pomo flips this.** Start a Pomodoro, hand the agent a task, and step away. Do whatever you need to do — work on something else, take a walk, have a meeting. The agent runs uninterrupted. Notifications are silenced. If it finishes early, it waits. If it hits a decision point, it records it and waits. It does not interrupt.
+**vibe-pomo flips this.** Start a Pomodoro, hand the agent a task, and step away. The agent works autonomously — notifications silenced, decisions queued, no interruptions. When the timer ends, *you* decide when to come back. Not the agent.
 
-When the timer ends, *you* decide when to come back. Not the agent.
+**Deep focus, on both sides.**
+Block out distraction-free time for yourself while the agent runs its own uninterrupted work session. No context switches. No reactive loops. Just two parallel flows converging when you're ready.
 
-- **Batch, don't stream.** Agent outputs accumulate during the session. You review them all at once, on your terms.
-- **Protect attention.** No mid-thought pings. No context switches. Just a clean block of unbroken time.
-- **Trust, then verify.** The agent handles what's clear. Anything ambiguous gets flagged in `.claude/pomodoro-pending.md` for you to review at session end.
-- **Both sides get flow.** The agent runs a full uninterrupted work session too — which tends to produce better results than stop-start interaction.
+**Know where your time goes.**
+Every session is logged with what the agent accomplished and what you worked on. Review per-project focus time, browse session history, and see exactly how your hours were spent — a clear record for personal retrospectives and project planning.
 
 ---
 
@@ -62,9 +61,7 @@ Timer window (per session)
   [E] End Session   [B] Break   [Q] Quit
 ```
 
-When the timer hits zero, it switches to **overtime mode** (`+00:01`, `+00:02`...), releases the queued notifications, and waits for you to press **E**. No forced cutoffs.
-
-At session end, you're prompted to log what *you* did during that time:
+When the timer ends, queued notifications are released and you're prompted to log what *you* did during that time:
 
 ```
 What did you do during this session?
@@ -196,9 +193,7 @@ Duration formats: `25m`, `1h`, `90s`, or a plain number (treated as minutes).
 
 ## Compatibility
 
-vibe-pomo hooks activate only when the daemon is running. When no session is active, all three hooks exit immediately — no output, no side effects. One global daemon handles all your projects simultaneously.
-
-Works alongside any other Claude Code setup: `superpowers`, `get-shit-done`, or any custom slash command framework.
+vibe-pomo hooks activate only when the daemon is running. When no session is active, all three hooks exit immediately — no output, no side effects. One global daemon handles all your Claude Code projects simultaneously.
 
 ---
 

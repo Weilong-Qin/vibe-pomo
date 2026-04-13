@@ -27,7 +27,7 @@ Every session is logged — what the agent did, what you did — giving you a cl
 
 **Prerequisites:** Node.js 20+, Claude Code CLI
 
-**Recommended:** run Claude Code inside `tmux`. That is the primary supported interactive timer experience: vibe-pomo uses a `tmux` popup to cover the current pane during a Pomodoro. Outside `tmux`, sessions still run, but timer UI falls back to headless mode.
+**Recommended:** run Claude Code inside `tmux`. That is the primary supported interactive timer experience: vibe-pomo uses a `tmux` popup to cover the current pane during a Pomodoro. kitty can also support an overlay-style timer; terminals that cannot provide a comparable cover effect fall back to headless mode.
 
 ```bash
 npm i -g vibe-pomo
@@ -84,7 +84,7 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # uses default duration
 ```
 
-If Claude Code is running inside `tmux`, vibe-pomo opens a popup over the current pane so the ongoing task stays covered until you end or break the session. Outside `tmux`, it stays headless: the session still runs, but visualization remains in the daemon dashboard and stats view instead of opening another terminal window.
+If Claude Code is running inside `tmux`, vibe-pomo opens a popup over the current pane so the ongoing task stays covered until you end or break the session. In kitty, it will try to use an overlay window for the same purpose. Terminals that cannot provide a comparable cover effect stay headless: the session still runs, but visualization remains in the daemon dashboard and stats view instead of opening another terminal window.
 
 ```
 🍅 Pomodoro
@@ -167,7 +167,7 @@ Recent Sessions
 |--------|--------|-------------|
 | `defaultDurationMs` | ms | Default session duration (25 min = `1500000`) |
 | `decisionStrategy` | `"wait"` / `"break"` | When the agent is blocked: wait silently until you end the session (default), or end immediately |
-| `terminalEmulator` | `"auto"` / `"tmux"` / `"none"` | Timer surface. `"tmux"` opens a popup overlay, `"none"` forces headless mode, and `"auto"` uses the popup only when `$TMUX` is set. |
+| `terminalEmulator` | `"auto"` / `"tmux"` / `"kitty"` / `"none"` | Timer surface. `"tmux"` opens a popup overlay, `"kitty"` tries a kitty overlay window, `"none"` forces headless mode, and `"auto"` prefers supported cover-style overlays before falling back to headless mode. |
 | `soundOnOvertime` | bool | Play a sound when the timer hits zero |
 
 ---

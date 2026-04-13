@@ -184,7 +184,7 @@ async function cmdStopDaemon() {
 
 async function launchTerminal({ tsx, entryFile, sessionId, termPref }) {
   const mode = resolveTimerMode(termPref)
-  if (mode !== 'tmux-popup') return false
+  if (mode === 'none') return false
   return trySpawn(mode, tsx, entryFile, sessionId)
 }
 
@@ -194,12 +194,16 @@ function resolveTimerMode(termPref) {
   if ((pref === 'auto' || pref === 'tmux' || pref === 'tmux-popup') && process.env.TMUX) {
     return 'tmux-popup'
   }
+  if ((pref === 'auto' || pref === 'kitty' || pref === 'kitty-overlay') && process.env.KITTY_WINDOW_ID) {
+    return 'kitty-overlay'
+  }
   return 'none'
 }
 
 function buildCmd(term, tsx, entryFile, sessionId) {
   switch (term) {
     case 'tmux-popup':     return buildTmuxPopupCmd(tsx, entryFile, sessionId)
+    case 'kitty-overlay':  return buildKittyOverlayCmd(tsx, entryFile, sessionId)
     default:               return null
   }
 }
@@ -253,6 +257,22 @@ function buildTmuxPopupCmd(tsx, entryFile, sessionId) {
     '-B',
     '-T', 'Pomodoro',
     `bash -lc ${shellQuote(timerCmd)}`,
+  ]
+}
+
+function buildKittyOverlayCmd(tsx, entryFile, sessionId) {
+  return [
+    'kitty',
+    '@',
+    'launch',
+    '--type=overlay-main',
+    '--cwd=current',
+    '--title=Pomodoro',
+    '--env=POMODORO_MODAL=1',
+    process.execPath,
+    tsx,
+    entryFile,
+    sessionId,
   ]
 }
 

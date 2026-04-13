@@ -120,7 +120,7 @@ The user has started a Pomodoro focus session and **will not be checking the scr
 - Focus only on what is **unambiguously clear** from the task description
 - If you encounter something that requires a user decision, **stop and record it** in \`.claude/pomodoro-pending.md\` — do NOT make assumptions or proceed on the user's behalf
 - Do not send notifications or ask questions — the user is in focus mode
-- If a timer UI is available, it may appear as a tmux popup. If not, continue headlessly — do not mention missing timer UI to the user unless they ask
+- If a timer UI is available, it may appear as a tmux popup or a kitty overlay. If not, continue headlessly — do not mention missing timer UI to the user unless they ask
 - When you have done all you can, write a summary to \`.claude/pomodoro-summary.md\`
 - Then wait quietly — the Pomodoro hook will manage the session lifecycle
 `

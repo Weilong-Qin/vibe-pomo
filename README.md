@@ -7,6 +7,12 @@
 
 <!-- screenshot: dashboard terminal showing active sessions + project stats -->
 
+<!-- README-I18N:START -->
+
+**English** | [汉语](./README.zh.md)
+
+<!-- README-I18N:END -->
+
 ---
 
 ## Why vibe-pomo

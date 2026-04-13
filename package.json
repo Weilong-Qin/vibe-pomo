@@ -33,14 +33,12 @@
     "tui": "tsx src/tui/index.tsx"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3",
     "ink": "^5.1.0",
     "ink-text-input": "^6.0.0",
     "react": "^18.3.1",
     "tsx": "^4.19.2"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/react": "^18.3.1"
   },
   "engines": {

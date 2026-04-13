@@ -1,146 +1,130 @@
-import Database from 'better-sqlite3'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 
-const DB_PATH = join(homedir(), '.claude', 'pomodoro.db')
+const DATA_PATH = join(homedir(), '.claude', 'pomodoro-data.json')
 
-function openDb() {
+// ── In-memory store (loaded once, flushed on every write) ─────────────────────
+
+let _data = null
+
+function load() {
+  if (_data) return _data
   mkdirSync(join(homedir(), '.claude'), { recursive: true })
-  const db = new Database(DB_PATH)
-  db.pragma('journal_mode = WAL')
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id             INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_hash   TEXT NOT NULL,
-      project_path   TEXT NOT NULL,
-      started_at     INTEGER NOT NULL,
-      ended_at       INTEGER,
-      planned_ms     INTEGER NOT NULL,
-      actual_ms      INTEGER,
-      cycles         INTEGER DEFAULT 1,
-      status         TEXT NOT NULL,
-      task           TEXT,
-      agent_summary  TEXT,   -- from .claude/pomodoro-summary.md
-      user_activity  TEXT    -- what the user did during this session (entered at session end)
-    );
-
-    -- Migrate existing tables: add new columns if they don't exist yet
-    -- (SQLite doesn't support IF NOT EXISTS for columns, so we use a safe approach)
-
-
-    CREATE TABLE IF NOT EXISTS notifications (
-      id                INTEGER PRIMARY KEY AUTOINCREMENT,
-      session_id        INTEGER REFERENCES sessions(id),
-      received_at       INTEGER NOT NULL,
-      released_at       INTEGER,
-      notification_json TEXT NOT NULL
-    );
-
-    CREATE VIEW IF NOT EXISTS project_stats AS
-    SELECT
-      project_path,
-      COUNT(*)               AS total_sessions,
-      SUM(cycles)            AS total_cycles,
-      SUM(actual_ms) / 60000 AS total_minutes,
-      MAX(started_at)        AS last_active
-    FROM sessions
-    WHERE status != 'broken'
-    GROUP BY project_path;
-  `)
-
-  // Safe column migrations for existing databases
-  const cols = db.prepare(`PRAGMA table_info(sessions)`).all().map((c) => c.name)
-  if (!cols.includes('agent_summary')) {
-    db.exec(`ALTER TABLE sessions ADD COLUMN agent_summary TEXT`)
+  if (existsSync(DATA_PATH)) {
+    try { _data = JSON.parse(readFileSync(DATA_PATH, 'utf8')) } catch {}
   }
-  if (!cols.includes('user_activity')) {
-    db.exec(`ALTER TABLE sessions ADD COLUMN user_activity TEXT`)
+  if (!_data) _data = { sessions: [], notifications: [], nextId: 1 }
+  // Backfill nextId in case file was created without it
+  if (!_data.nextId) {
+    const maxId = Math.max(0, ...(_data.sessions ?? []).map((s) => s.id ?? 0))
+    _data.nextId = maxId + 1
   }
-
-  return db
+  return _data
 }
 
-let _db = null
-function getDb() {
-  if (!_db) _db = openDb()
-  return _db
+function flush() {
+  writeFileSync(DATA_PATH, JSON.stringify(_data, null, 2), 'utf8')
 }
+
+// ── Public API (mirrors the old better-sqlite3 interface exactly) ─────────────
 
 export function startSession({ projectHash, projectPath, plannedMs, task }) {
-  const db = getDb()
-  const result = db.prepare(`
-    INSERT INTO sessions (project_hash, project_path, started_at, planned_ms, task, status)
-    VALUES (?, ?, ?, ?, ?, 'running')
-  `).run(projectHash, projectPath, Date.now(), plannedMs, task ?? null)
-  return result.lastInsertRowid
+  const data = load()
+  const id = data.nextId++
+  data.sessions.push({
+    id,
+    project_hash:   projectHash,
+    project_path:   projectPath,
+    started_at:     Date.now(),
+    ended_at:       null,
+    planned_ms:     plannedMs,
+    actual_ms:      null,
+    cycles:         1,
+    status:         'running',
+    task:           task ?? null,
+    agent_summary:  null,
+    user_activity:  null,
+  })
+  flush()
+  return id
 }
 
-export function endSession(sessionId, { actualMs, status, agentSummary }) {
-  const db = getDb()
-  db.prepare(`
-    UPDATE sessions
-    SET ended_at = ?, actual_ms = ?, status = ?, agent_summary = ?
-    WHERE id = ?
-  `).run(Date.now(), actualMs, status, agentSummary ?? null, sessionId)
+export function endSession(id, { actualMs, status, agentSummary }) {
+  const data = load()
+  const s = data.sessions.find((s) => s.id === id)
+  if (!s) return
+  s.ended_at     = Date.now()
+  s.actual_ms    = actualMs
+  s.status       = status
+  s.agent_summary = agentSummary ?? null
+  flush()
 }
 
-export function updateSessionActivity(sessionId, { userActivity }) {
-  const db = getDb()
-  db.prepare(`UPDATE sessions SET user_activity = ? WHERE id = ?`)
-    .run(userActivity ?? null, sessionId)
+export function updateSessionActivity(id, { userActivity }) {
+  const data = load()
+  const s = data.sessions.find((s) => s.id === id)
+  if (!s) return
+  s.user_activity = userActivity ?? null
+  flush()
 }
 
 export function saveNotification(sessionId, { notificationJson, receivedAt, releasedAt }) {
-  const db = getDb()
-  db.prepare(`
-    INSERT INTO notifications (session_id, received_at, released_at, notification_json)
-    VALUES (?, ?, ?, ?)
-  `).run(sessionId, receivedAt, releasedAt ?? null, notificationJson)
+  const data = load()
+  data.notifications.push({
+    id:                data.nextId++,
+    session_id:        sessionId,
+    received_at:       receivedAt,
+    released_at:       releasedAt ?? null,
+    notification_json: notificationJson,
+  })
+  flush()
+}
+
+// ── Aggregation helpers ───────────────────────────────────────────────────────
+
+function projectStats() {
+  const data = load()
+  const map = new Map()
+  for (const s of data.sessions) {
+    if (s.status === 'broken') continue
+    const key = s.project_path
+    if (!map.has(key)) map.set(key, { project_path: key, total_sessions: 0, total_cycles: 0, total_minutes: 0, last_active: 0 })
+    const row = map.get(key)
+    row.total_sessions++
+    row.total_cycles  += s.cycles ?? 1
+    row.total_minutes += Math.floor((s.actual_ms ?? 0) / 60000)
+    if (s.started_at > row.last_active) row.last_active = s.started_at
+  }
+  return [...map.values()].sort((a, b) => b.last_active - a.last_active)
 }
 
 /** Return stats for Dashboard TUI */
 export function getStats() {
-  const db = getDb()
-  const projects = db.prepare(`
-    SELECT project_path, total_sessions, total_cycles, total_minutes, last_active
-    FROM project_stats ORDER BY last_active DESC LIMIT 10
-  `).all()
-
-  const recent = db.prepare(`
-    SELECT project_path, task, actual_ms, status, started_at, agent_summary, user_activity
-    FROM sessions ORDER BY started_at DESC LIMIT 8
-  `).all()
-
+  const data = load()
+  const projects = projectStats().slice(0, 10)
+  const recent = [...data.sessions]
+    .sort((a, b) => b.started_at - a.started_at)
+    .slice(0, 8)
+    .map(({ project_path, task, actual_ms, status, started_at, agent_summary, user_activity }) =>
+      ({ project_path, task, actual_ms, status, started_at, agent_summary, user_activity }))
   return { projects, recent }
 }
 
 /** Return all sessions for a project, for detailed review */
 export function getProjectSessions(projectPath) {
-  const db = getDb()
-  return db.prepare(`
-    SELECT id, task, started_at, ended_at, actual_ms, status, agent_summary, user_activity
-    FROM sessions
-    WHERE project_path = ?
-    ORDER BY started_at DESC
-  `).all(projectPath)
+  const data = load()
+  return data.sessions
+    .filter((s) => s.project_path === projectPath)
+    .sort((a, b) => b.started_at - a.started_at)
+    .map(({ id, task, started_at, ended_at, actual_ms, status, agent_summary, user_activity }) =>
+      ({ id, task, started_at, ended_at, actual_ms, status, agent_summary, user_activity }))
 }
 
 /** Print stats to stdout as a formatted table */
 export function printStats() {
-  const db = getDb()
-
-  const projects = db.prepare(`
-    SELECT
-      project_path,
-      total_sessions,
-      total_cycles,
-      total_minutes,
-      last_active
-    FROM project_stats
-    ORDER BY last_active DESC
-  `).all()
+  const data = load()
+  const projects = projectStats()
 
   if (projects.length === 0) {
     console.log('No completed sessions yet.')
@@ -165,18 +149,14 @@ export function printStats() {
       truncated.padEnd(36) +
       String(row.total_sessions).padStart(9) +
       String(row.total_cycles).padStart(8) +
-      String(row.total_minutes ?? 0).padStart(9) +
+      String(row.total_minutes).padStart(9) +
       `  ${date}`
     )
   }
 
-  // Recent sessions
-  const recent = db.prepare(`
-    SELECT project_path, task, actual_ms, cycles, status, started_at
-    FROM sessions
-    ORDER BY started_at DESC
-    LIMIT 10
-  `).all()
+  const recent = [...data.sessions]
+    .sort((a, b) => b.started_at - a.started_at)
+    .slice(0, 10)
 
   console.log('\nRecent Sessions\n' + '─'.repeat(72))
   console.log(
@@ -191,17 +171,15 @@ export function printStats() {
   for (const s of recent) {
     const taskLabel = (s.task ?? '(no task)').slice(0, 37).padEnd(38)
     const mins = s.actual_ms ? String(Math.round(s.actual_ms / 60000)).padStart(5) : '   —'
-    const cyc = String(s.cycles).padStart(5)
+    const cyc = String(s.cycles ?? 1).padStart(5)
     const status = s.status.padEnd(12)
     const date = new Date(s.started_at).toLocaleDateString()
     console.log(`${taskLabel}${mins}${cyc}  ${status}  ${date}`)
     if (s.agent_summary) {
-      const line = s.agent_summary.split('\n')[0].slice(0, 68)
-      console.log(`  🤖 ${line}`)
+      console.log(`  🤖 ${s.agent_summary.split('\n')[0].slice(0, 68)}`)
     }
     if (s.user_activity) {
-      const line = s.user_activity.slice(0, 68)
-      console.log(`  👤 ${line}`)
+      console.log(`  👤 ${s.user_activity.slice(0, 68)}`)
     }
   }
 

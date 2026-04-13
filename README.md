@@ -17,69 +17,9 @@
 
 ## Why vibe-pomo
 
-Most AI coding tools are built around one assumption: you're always watching. Every tool call, every decision, every completion — the agent pings you, waits for you, interrupts you. Each exchange is small, but the cumulative cost is enormous: you never get more than a few minutes of unbroken attention.
+Most AI coding tools assume you're always watching — the agent pings you, waits for you, interrupts you. **vibe-pomo flips this.** Start a Pomodoro, hand the agent a task, and step away. Tool calls auto-approved, notifications silenced, decisions queued. When the timer ends, *you* decide when to come back.
 
-**vibe-pomo flips this.** Start a Pomodoro, hand the agent a task, and step away. The agent works autonomously — notifications silenced, decisions queued, no interruptions. When the timer ends, *you* decide when to come back. Not the agent.
-
-**Deep focus, on both sides.**
-Block out distraction-free time for yourself while the agent runs its own uninterrupted work session. No context switches. No reactive loops. Just two parallel flows converging when you're ready.
-
-**Know where your time goes.**
-Every session is logged with what the agent accomplished and what you worked on. Review per-project focus time, browse session history, and see exactly how your hours were spent — a clear record for personal retrospectives and project planning.
-
----
-
-## How It Works
-
-Two terminals, two roles:
-
-```
-Terminal A — daemon (always open)       Terminal B — Claude Code conversation
-─────────────────────────────────       ───────────────────────────────────────
-$ pomodoro daemon                       /pomodoro 25m Fix auth bug
-                                                   |
-  🍅 Pomodoro  daemon running                      +---> Timer window opens
-                                                         Agent starts working
-  Active Sessions                                        Notifications silenced
-   23:41  my-project  Fix auth bug                       Tool calls auto-approved
-
-  Project Focus Time
-   my-project  ████████████░░  3h 45m
-
-  Recent Sessions
-   my-project  Fix auth bug
-    🤖 Rewrote JWT middleware
-    👤 Had a planning call
-```
-
-```
-Timer window (per session)
-──────────────────────────────────
-  🍅 Pomodoro
-
-        +02:13  OVERTIME
-
-  Task: Fix auth bug
-
-  Notifications
-  ┌──────────────────────────────┐
-  │ Build passed                 │
-  │ Tests: 42 passed             │
-  └──────────────────────────────┘
-
-  [E] End Session   [B] Break   [Q] Quit
-```
-
-When the timer ends, queued notifications are released and you're prompted to log what *you* did during that time:
-
-```
-What did you do during this session?
-(optional — press Enter to skip)
-
-> Reviewed the RFC, had a planning call with the team
-```
-
-This gets saved alongside the agent's summary, giving you a dual-perspective record of every session.
+Every session is logged — what the agent did, what you did — giving you a clear record across projects.
 
 ---
 
@@ -110,7 +50,24 @@ pomodoro install
 pomodoro daemon
 ```
 
-Shows a live dashboard: active sessions with countdowns, per-project focus time, and recent session history.
+```
+🍅 Pomodoro  daemon running · 1 active session  [Q] Quit daemon
+
+ Active Sessions
+ 23:41  my-project      Fix auth bug [3 queued]
+
+ Project Focus Time
+ my-project        ████████████████████████████ 4h 25m
+ side-project      ███████████░░░░░░░░░░░░░░░░░ 1h 45m
+
+ Recent Sessions
+ 4/13  my-project    Refactor auth module  28m  completed
+         🤖 Rewrote JWT middleware, pending: refresh token expiry strategy
+         👤 Read RFC, had planning call with team
+ 4/13  my-project    Fix payment webhook  18m  completed
+         🤖 Found and fixed Stripe signature validation bug
+         👤 Coffee, cleared inbox
+```
 
 ### 2. Start a session
 
@@ -123,22 +80,48 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # uses default duration
 ```
 
-A timer window opens. The agent starts working. You're free.
-
-### 3. During the session
-
-The agent works autonomously — tool calls approved, notifications queued, decisions logged. You can check in from Claude Code without exiting:
+A timer window opens in a new terminal. The agent starts working. You're free.
 
 ```
-/pomodoro-stats    view time tracking statistics
-/pomodoro-stop     break the current session
+🍅 Pomodoro
+
+                             23:45
+                            RUNNING
+
+Task  Refactor the auth module
+
+ Notifications  (3 queued, releasing at overtime…)
+┌────────────────────────────────────────────────────────────┐
+│  —                                                         │
+└────────────────────────────────────────────────────────────┘
+
+[B] Break    [Q] Quit
 ```
 
-### 4. When the timer ends
+### 3. When the timer ends
 
-Timer switches to overtime. Queued notifications appear. Press **E** to end, log what you did, then review the agent's summary and any pending decisions in `.claude/pomodoro-summary.md` and `.claude/pomodoro-pending.md`.
+The display switches to overtime and queued notifications are released. Press **E** to end the session and log what you did.
 
-### 5. Review your stats
+```
+🍅 Pomodoro
+
+                             +02:13
+                            OVERTIME
+
+Task  Refactor the auth module
+
+ Notifications
+┌────────────────────────────────────────────────────────────┐
+│ 09:42:01  Build passed                                     │
+│ 09:42:01  Tests: 42 passed                                 │
+└────────────────────────────────────────────────────────────┘
+
+[E] End Session   [B] Break   [Q] Quit
+```
+
+The agent's summary and any pending decisions are saved to `.claude/pomodoro-summary.md` and `.claude/pomodoro-pending.md`.
+
+### 4. Review your stats
 
 ```bash
 pomodoro stats

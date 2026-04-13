@@ -1,0 +1,27 @@
+{
+  "name": "claude-pomodoro",
+  "version": "0.1.0",
+  "description": "Pomodoro timer for Claude Code — autonomous agent focus sessions",
+  "type": "module",
+  "bin": {
+    "pomodoro": "./bin/pomodoro.mjs"
+  },
+  "scripts": {
+    "start": "node bin/pomodoro.mjs",
+    "tui": "tsx src/tui/index.tsx"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "ink": "^5.1.0",
+    "ink-text-input": "^6.0.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/react": "^18.3.1",
+    "tsx": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

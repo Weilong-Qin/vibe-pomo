@@ -23,10 +23,10 @@
     "tui"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "Weilong Qin <qinweilong0813@gmail.com>",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/Weilong-Qin/vibe-pomo.git"
   },
   "scripts": {
     "start": "node bin/pomodoro.mjs",

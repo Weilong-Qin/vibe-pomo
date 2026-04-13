@@ -2,6 +2,9 @@
 
 > You and your agent, both in flow.
 
+[![npm version](https://img.shields.io/npm/v/vibe-pomo)](https://www.npmjs.com/package/vibe-pomo)
+[![npm downloads](https://img.shields.io/npm/dm/vibe-pomo)](https://www.npmjs.com/package/vibe-pomo)
+
 <!-- screenshot: dashboard terminal showing active sessions + project stats -->
 
 ---
@@ -79,7 +82,7 @@ This gets saved alongside the agent's summary, giving you a dual-perspective rec
 **Prerequisites:** Node.js 20+, Claude Code CLI
 
 ```bash
-npm install -g vibe-pomo
+npm i -g vibe-pomo
 pomodoro install
 ```
 

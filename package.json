@@ -4,7 +4,7 @@
   "description": "You and your agent, both in flow. A Pomodoro timer for Claude Code that keeps agents working autonomously while you stay deep in focus — uninterrupted.",
   "type": "module",
   "bin": {
-    "pomodoro": "./bin/pomodoro.mjs"
+    "pomodoro": "bin/pomodoro.mjs"
   },
   "files": [
     "bin/",
@@ -26,7 +26,7 @@
   "author": "Weilong Qin <qinweilong0813@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Weilong-Qin/vibe-pomo.git"
+    "url": "git+https://github.com/Weilong-Qin/vibe-pomo.git"
   },
   "scripts": {
     "start": "node bin/pomodoro.mjs",

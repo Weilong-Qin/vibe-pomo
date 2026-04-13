@@ -84,6 +84,8 @@ What did you do during this session?
 
 **前置条件：** Node.js 20+、Claude Code CLI
 
+**推荐条件：** 请在 `tmux` 里运行 Claude Code。这是 vibe-pomo 当前主推的交互方式：番茄钟会通过 `tmux popup` 覆盖当前 pane。非 `tmux` 环境下，会话仍然会正常运行，但计时器 UI 会退化为无界面模式。
+
 ```bash
 npm install -g vibe-pomo
 pomodoro install
@@ -111,6 +113,8 @@ pomodoro daemon
 
 ### 2. 开始一个会话
 
+如果你希望获得“盖住当前 Claude Code 窗口”的预期体验，请先在 `tmux` session 里打开 Claude Code，再执行 `/pomodoro ...`。
+
 ```bash
 # 在 Claude Code 中（推荐）
 /pomodoro 25m Refactor the auth module
@@ -120,7 +124,7 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # 使用默认时长
 ```
 
-如果 Claude Code 跑在 `tmux` 里，vibe-pomo 会在当前 pane 上弹出一个覆盖式 popup，把正在进行的任务界面盖住，直到你结束或中断番茄钟。非 `tmux` 环境下则回退到单独的计时器终端窗口。
+如果 Claude Code 跑在 `tmux` 里，vibe-pomo 会在当前 pane 上弹出一个覆盖式 popup，把正在进行的任务界面盖住，直到你结束或中断番茄钟。非 `tmux` 环境下则保持无界面模式：会话照常运行，但只通过 daemon 仪表板和统计视图展示，不再额外弹出终端窗口。
 
 ### 3. 会话进行中
 
@@ -177,7 +181,7 @@ Recent Sessions
 |------|------|------|
 | `defaultDurationMs` | 毫秒数 | 默认会话时长（25 分钟 = `1500000`） |
 | `decisionStrategy` | `"wait"` / `"break"` | 代理被阻塞时的策略：静默等待直到你结束会话（默认），或立即结束 |
-| `terminalEmulator` | `"auto"` / `"tmux"` / `"tmux-window"` / 名称 | 计时器展示方式。`"tmux"` 打开覆盖式 popup，`"tmux-window"` 使用新的 tmux window，`"auto"` 在检测到 `$TMUX` 时优先使用 popup |
+| `terminalEmulator` | `"auto"` / `"tmux"` / `"none"` | 计时器展示方式。`"tmux"` 打开覆盖式 popup，`"none"` 强制无界面模式，`"auto"` 仅在检测到 `$TMUX` 时使用 popup |
 | `soundOnOvertime` | 布尔值 | 计时归零时播放提示音 |
 
 ---

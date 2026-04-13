@@ -109,23 +109,7 @@ argument-hint: "[duration e.g. 25m] [task description]"
 node ${pomodoroPath} start $ARGUMENTS
 \`\`\`
 
-## Step 2: Check if timer window launched
-
-Read the output from Step 1 carefully.
-
-If the output contains **\`POMODORO_TIMER_NOT_LAUNCHED\`**, the system could not open a separate timer window (common in SSH, VSCode, or headless environments). In this case you MUST tell the user BEFORE doing any work:
-
-> ⚠️ **No timer window could be opened automatically.**
->
-> Run one of these in another terminal to control your Pomodoro:
-> - **Watch timer:** (the command shown on the "To watch" line above)
-> - **End session:** (the command shown on the "To end" line above)
->
-> I'll now work on your task. The session will stay active until you run the stop command.
-
-After telling the user that once, continue immediately. Do not wait for a reply.
-
-## Step 3: Work autonomously during the focus session
+## Step 2: Work autonomously during the focus session
 
 The user has started a Pomodoro focus session and **will not be checking the screen** until the timer ends. Do not interrupt them.
 
@@ -136,6 +120,7 @@ The user has started a Pomodoro focus session and **will not be checking the scr
 - Focus only on what is **unambiguously clear** from the task description
 - If you encounter something that requires a user decision, **stop and record it** in \`.claude/pomodoro-pending.md\` — do NOT make assumptions or proceed on the user's behalf
 - Do not send notifications or ask questions — the user is in focus mode
+- If a timer UI is available, it may appear as a tmux popup. If not, continue headlessly — do not mention missing timer UI to the user unless they ask
 - When you have done all you can, write a summary to \`.claude/pomodoro-summary.md\`
 - Then wait quietly — the Pomodoro hook will manage the session lifecycle
 `

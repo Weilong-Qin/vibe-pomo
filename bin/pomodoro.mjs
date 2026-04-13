@@ -109,20 +109,16 @@ async function cmdStart(args) {
     spawnWatcher(resp.sessionId)
   }
 
-  // Launch timer TUI in a new terminal window
+  // Only launch an interactive timer UI when we can safely cover the current
+  // Claude Code pane with a tmux popup. Otherwise stay headless and let the
+  // daemon/dashboard own visualization so the conversation flow is not disturbed.
   const timerEntry = join(ROOT, 'src', 'tui', 'timer', 'index.tsx')
-  const launched = await launchTerminal({
+  await launchTerminal({
     tsx: TSX,
     entryFile: timerEntry,
     sessionId: resp.sessionId,
     termPref: config.terminalEmulator,
   })
-
-  if (!launched) {
-    console.log(`POMODORO_TIMER_NOT_LAUNCHED`)
-    console.log(`  To watch the timer: node ${TSX} ${timerEntry} ${resp.sessionId}`)
-    console.log(`  To end the session: node ${join(ROOT, 'bin', 'pomodoro.mjs')} stop`)
-  }
 }
 
 async function cmdStop(args) {
@@ -187,52 +183,23 @@ async function cmdStopDaemon() {
 // ── Terminal launch helpers ───────────────────────────────────────────────────
 
 async function launchTerminal({ tsx, entryFile, sessionId, termPref }) {
-  const terminals = termPref && termPref !== 'auto'
-    ? [termPref]
-    : detectTerminals()
-
-  for (const term of terminals) {
-    const ok = await trySpawn(term, tsx, entryFile, sessionId)
-    if (ok) return true
-  }
-  return false
+  const mode = resolveTimerMode(termPref)
+  if (mode !== 'tmux-popup') return false
+  return trySpawn(mode, tsx, entryFile, sessionId)
 }
 
-function detectTerminals() {
-  const list = []
-  if (isWin) {
-    list.push('wt', 'cmd')
-    return list
+function resolveTimerMode(termPref) {
+  const pref = termPref ?? 'auto'
+  if (pref === 'none' || pref === 'headless') return 'none'
+  if ((pref === 'auto' || pref === 'tmux' || pref === 'tmux-popup') && process.env.TMUX) {
+    return 'tmux-popup'
   }
-  // Prefer a modal overlay when Claude Code is running inside tmux.
-  if (process.env.TMUX)                       list.push('tmux-popup')
-  if (process.env.STY)                        list.push('screen')
-  if (process.env.KITTY_WINDOW_ID)            list.push('kitty')
-  if (process.env.TERM_PROGRAM === 'WezTerm') list.push('wezterm')
-  list.push('tmux-window', 'gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'alacritty', 'wezterm', 'kitty')
-  return list
+  return 'none'
 }
 
 function buildCmd(term, tsx, entryFile, sessionId) {
-  // Quote paths for Windows (handles spaces in paths like AppData\Roaming\npm\...)
-  const q = isWin ? (p) => `"${p}"` : (p) => p
-  const inner = isWin
-    ? `${q(tsx)} ${q(entryFile)} ${sessionId}`
-    : `${tsx} ${entryFile} ${sessionId}`
   switch (term) {
-    case 'wt':             return ['wt', 'new-tab', '--', 'cmd.exe', '/k', inner]
-    case 'cmd':            return ['cmd.exe', '/c', `start cmd.exe /k "${inner}"`]
-    case 'tmux':
     case 'tmux-popup':     return buildTmuxPopupCmd(tsx, entryFile, sessionId)
-    case 'tmux-window':    return ['tmux', 'new-window', inner]
-    case 'screen':         return ['screen', '-X', 'screen', 'bash', '-c', inner]
-    case 'gnome-terminal': return ['gnome-terminal', '--', 'bash', '-c', inner]
-    case 'xfce4-terminal': return ['xfce4-terminal', '-e', inner]
-    case 'konsole':        return ['konsole', '-e', inner]
-    case 'xterm':          return ['xterm', '-e', inner]
-    case 'alacritty':      return ['alacritty', '-e', 'bash', '-c', inner]
-    case 'wezterm':        return ['wezterm', 'start', '--', 'bash', '-c', inner]
-    case 'kitty':          return ['kitty', 'bash', '-c', inner]
     default:               return null
   }
 }
@@ -279,8 +246,11 @@ function buildTmuxPopupCmd(tsx, entryFile, sessionId) {
     'tmux',
     'display-popup',
     '-E',
-    '-w', '90%',
-    '-h', '90%',
+    '-w', '100%',
+    '-h', '100%',
+    '-x', '0',
+    '-y', '0',
+    '-B',
     '-T', 'Pomodoro',
     `bash -lc ${shellQuote(timerCmd)}`,
   ]

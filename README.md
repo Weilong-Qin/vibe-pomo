@@ -27,6 +27,8 @@ Every session is logged — what the agent did, what you did — giving you a cl
 
 **Prerequisites:** Node.js 20+, Claude Code CLI
 
+**Recommended:** run Claude Code inside `tmux`. That is the primary supported interactive timer experience: vibe-pomo uses a `tmux` popup to cover the current pane during a Pomodoro. Outside `tmux`, sessions still run, but timer UI falls back to headless mode.
+
 ```bash
 npm i -g vibe-pomo
 pomodoro install
@@ -71,6 +73,8 @@ pomodoro daemon
 
 ### 2. Start a session
 
+For the intended covered-screen workflow, open Claude Code inside a `tmux` session before running `/pomodoro ...`.
+
 ```bash
 # From Claude Code (recommended)
 /pomodoro 25m Refactor the auth module
@@ -80,7 +84,7 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # uses default duration
 ```
 
-If Claude Code is running inside `tmux`, vibe-pomo opens a popup over the current pane so the ongoing task stays covered until you end or break the session. Outside `tmux`, it falls back to a separate timer terminal.
+If Claude Code is running inside `tmux`, vibe-pomo opens a popup over the current pane so the ongoing task stays covered until you end or break the session. Outside `tmux`, it stays headless: the session still runs, but visualization remains in the daemon dashboard and stats view instead of opening another terminal window.
 
 ```
 🍅 Pomodoro
@@ -163,7 +167,7 @@ Recent Sessions
 |--------|--------|-------------|
 | `defaultDurationMs` | ms | Default session duration (25 min = `1500000`) |
 | `decisionStrategy` | `"wait"` / `"break"` | When the agent is blocked: wait silently until you end the session (default), or end immediately |
-| `terminalEmulator` | `"auto"` / `"tmux"` / `"tmux-window"` / name | Timer surface. `"tmux"` opens a popup overlay, `"tmux-window"` uses a new tmux window, and `"auto"` prefers the popup when `$TMUX` is set. |
+| `terminalEmulator` | `"auto"` / `"tmux"` / `"none"` | Timer surface. `"tmux"` opens a popup overlay, `"none"` forces headless mode, and `"auto"` uses the popup only when `$TMUX` is set. |
 | `soundOnOvertime` | bool | Play a sound when the timer hits zero |
 
 ---

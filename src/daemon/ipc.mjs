@@ -20,8 +20,8 @@ export class IpcServer {
   }
 
   async listen(socketPath) {
-    // Clean up stale socket file
-    if (existsSync(socketPath)) {
+    // Clean up stale socket file (Unix only — Windows named pipes don't need this)
+    if (process.platform !== 'win32' && existsSync(socketPath)) {
       unlinkSync(socketPath)
     }
 

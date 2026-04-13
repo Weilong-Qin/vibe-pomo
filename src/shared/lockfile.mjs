@@ -5,7 +5,10 @@ import { join } from 'node:path'
 
 const CLAUDE_DIR = join(homedir(), '.claude')
 const LOCK_PATH = join(CLAUDE_DIR, 'pomodoro.lock')
-const SOCKET_PATH = join(CLAUDE_DIR, 'pomodoro.sock')
+// Windows requires named pipe paths; Unix uses a socket file
+const SOCKET_PATH = process.platform === 'win32'
+  ? '\\\\.\\pipe\\vibe-pomo'
+  : join(CLAUDE_DIR, 'pomodoro.sock')
 
 export function getSocketPath() {
   return SOCKET_PATH
@@ -30,7 +33,8 @@ export function readLock() {
     process.kill(data.pid, 0)
   } catch {
     try { unlinkSync(LOCK_PATH) } catch {}
-    try { unlinkSync(SOCKET_PATH) } catch {}
+    // Named pipes on Windows are kernel-managed; only unlink on Unix
+    if (process.platform !== 'win32') try { unlinkSync(SOCKET_PATH) } catch {}
     return null
   }
   return data
@@ -42,7 +46,8 @@ export function writeLock(data) {
 
 export function removeLock() {
   try { unlinkSync(LOCK_PATH) } catch {}
-  try { unlinkSync(SOCKET_PATH) } catch {}
+  // Named pipes on Windows are kernel-managed; only unlink on Unix
+  if (process.platform !== 'win32') try { unlinkSync(SOCKET_PATH) } catch {}
 }
 
 /** Stable short ID for a project directory */

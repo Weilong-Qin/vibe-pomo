@@ -15,6 +15,8 @@ const SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
 
 export function runInstall() {
   const nodeExec = process.execPath
+  // Quote paths containing spaces (common on Windows)
+  const q = (p) => p.includes(' ') ? `"${p}"` : p
 
   const hookDefs = {
     PreToolUse: [
@@ -22,7 +24,7 @@ export function runInstall() {
         matcher: '.*',
         hooks: [{
           type: 'command',
-          command: `${nodeExec} ${join(HOOKS_DIR, 'preToolUse.mjs')}`,
+          command: `${q(nodeExec)} ${q(join(HOOKS_DIR, 'preToolUse.mjs'))}`,
         }],
       },
     ],
@@ -30,7 +32,7 @@ export function runInstall() {
       {
         hooks: [{
           type: 'command',
-          command: `${nodeExec} ${join(HOOKS_DIR, 'notification.mjs')}`,
+          command: `${q(nodeExec)} ${q(join(HOOKS_DIR, 'notification.mjs'))}`,
         }],
       },
     ],
@@ -38,7 +40,7 @@ export function runInstall() {
       {
         hooks: [{
           type: 'command',
-          command: `${nodeExec} ${join(HOOKS_DIR, 'stop.mjs')}`,
+          command: `${q(nodeExec)} ${q(join(HOOKS_DIR, 'stop.mjs'))}`,
         }],
       },
     ],
@@ -107,6 +109,7 @@ function installSlashCommand() {
 function writePomodoroCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
+  const q = (p) => p.includes(' ') ? `"${p}"` : p
   writeFileSync(dest, `---
 description: Start a Pomodoro focus session — agent works autonomously until timer ends
 argument-hint: "[duration e.g. 25m] [task description]"
@@ -115,7 +118,7 @@ argument-hint: "[duration e.g. 25m] [task description]"
 ## Step 1: Start the Pomodoro timer
 
 \`\`\`bash
-${nodeExec} ${pomodoroPath} start $ARGUMENTS
+${q(nodeExec)} ${q(pomodoroPath)} start $ARGUMENTS
 \`\`\`
 
 ## Step 2: Work autonomously during the focus session
@@ -135,6 +138,7 @@ The user has started a Pomodoro focus session and **will not be checking the scr
 function writeStatsCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
+  const q = (p) => p.includes(' ') ? `"${p}"` : p
   writeFileSync(dest, `---
 description: Show Pomodoro time tracking statistics
 ---
@@ -142,7 +146,7 @@ description: Show Pomodoro time tracking statistics
 Run the following command and display the output to the user:
 
 \`\`\`bash
-${nodeExec} ${pomodoroPath} stats
+${q(nodeExec)} ${q(pomodoroPath)} stats
 \`\`\`
 `, 'utf8')
 }
@@ -150,6 +154,7 @@ ${nodeExec} ${pomodoroPath} stats
 function writeStopCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
+  const q = (p) => p.includes(' ') ? `"${p}"` : p
   writeFileSync(dest, `---
 description: Break (stop) the current Pomodoro session
 ---
@@ -157,7 +162,7 @@ description: Break (stop) the current Pomodoro session
 Run the following command to break the active Pomodoro session:
 
 \`\`\`bash
-${nodeExec} ${pomodoroPath} stop
+${q(nodeExec)} ${q(pomodoroPath)} stop
 \`\`\`
 
 Then confirm to the user that the session has been stopped.

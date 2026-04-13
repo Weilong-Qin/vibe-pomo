@@ -9,7 +9,8 @@ import { MSG, DECISION } from '../src/shared/protocol.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
-const TSX = join(ROOT, 'node_modules', '.bin', 'tsx')
+const isWin = process.platform === 'win32'
+const TSX = join(ROOT, 'node_modules', '.bin', isWin ? 'tsx.cmd' : 'tsx')
 
 const [,, cmd, ...args] = process.argv
 
@@ -53,7 +54,7 @@ await handler(args)
 async function cmdDaemon() {
   // Launch dashboard TUI (which also starts the daemon in-process)
   const dashboardEntry = join(ROOT, 'src', 'tui', 'dashboard', 'index.tsx')
-  const child = spawn(TSX, [dashboardEntry], { stdio: 'inherit' })
+  const child = spawn(TSX, [dashboardEntry], { stdio: 'inherit', shell: isWin })
   child.on('exit', (code) => process.exit(code ?? 0))
 }
 
@@ -192,6 +193,10 @@ async function launchTerminal(tsx, entryFile, sessionId, termPref) {
 
 function detectTerminals() {
   const list = []
+  if (isWin) {
+    list.push('wt', 'cmd')
+    return list
+  }
   if (process.env.KITTY_WINDOW_ID)        list.push('kitty')
   if (process.env.TERM_PROGRAM === 'WezTerm') list.push('wezterm')
   list.push('gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'alacritty', 'wezterm', 'kitty')
@@ -199,16 +204,22 @@ function detectTerminals() {
 }
 
 function buildCmd(term, tsx, entryFile, sessionId) {
-  const inner = `${tsx} ${entryFile} ${sessionId}`
+  // Quote paths for Windows (handles spaces in paths like AppData\Roaming\npm\...)
+  const q = isWin ? (p) => `"${p}"` : (p) => p
+  const inner = isWin
+    ? `${q(tsx)} ${q(entryFile)} ${sessionId}`
+    : `${tsx} ${entryFile} ${sessionId}`
   switch (term) {
-    case 'gnome-terminal':   return ['gnome-terminal', '--', 'bash', '-c', inner]
-    case 'xfce4-terminal':   return ['xfce4-terminal', '-e', inner]
-    case 'konsole':          return ['konsole', '-e', inner]
-    case 'xterm':            return ['xterm', '-e', inner]
-    case 'alacritty':        return ['alacritty', '-e', 'bash', '-c', inner]
-    case 'wezterm':          return ['wezterm', 'start', '--', 'bash', '-c', inner]
-    case 'kitty':            return ['kitty', 'bash', '-c', inner]
-    default:                 return null
+    case 'wt':             return ['wt', 'new-tab', '--', 'cmd.exe', '/k', inner]
+    case 'cmd':            return ['cmd.exe', '/c', `start cmd.exe /k "${inner}"`]
+    case 'gnome-terminal': return ['gnome-terminal', '--', 'bash', '-c', inner]
+    case 'xfce4-terminal': return ['xfce4-terminal', '-e', inner]
+    case 'konsole':        return ['konsole', '-e', inner]
+    case 'xterm':          return ['xterm', '-e', inner]
+    case 'alacritty':      return ['alacritty', '-e', 'bash', '-c', inner]
+    case 'wezterm':        return ['wezterm', 'start', '--', 'bash', '-c', inner]
+    case 'kitty':          return ['kitty', 'bash', '-c', inner]
+    default:               return null
   }
 }
 
@@ -218,7 +229,7 @@ function trySpawn(term, tsx, entryFile, sessionId) {
   return new Promise((resolve) => {
     let done = false
     try {
-      const child = spawn(cmd[0], cmd.slice(1), { detached: true, stdio: 'ignore' })
+      const child = spawn(cmd[0], cmd.slice(1), { detached: true, stdio: 'ignore', shell: isWin })
       child.on('error', () => { if (!done) { done = true; resolve(false) } })
       child.on('spawn', () => { if (!done) { done = true; child.unref(); resolve(true) } })
       setTimeout(() => { if (!done) { done = true; child.unref(); resolve(true) } }, 300)

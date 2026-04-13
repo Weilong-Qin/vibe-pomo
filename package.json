@@ -1,10 +1,32 @@
 {
-  "name": "claude-pomodoro",
+  "name": "vibe-pomo",
   "version": "0.1.0",
-  "description": "Pomodoro timer for Claude Code — autonomous agent focus sessions",
+  "description": "You and your agent, both in flow. A Pomodoro timer for Claude Code that keeps agents working autonomously while you stay deep in focus — uninterrupted.",
   "type": "module",
   "bin": {
     "pomodoro": "./bin/pomodoro.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "install.mjs",
+    "README.md"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "pomodoro",
+    "focus",
+    "productivity",
+    "ai",
+    "agent",
+    "tui"
+  ],
+  "license": "MIT",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": ""
   },
   "scripts": {
     "start": "node bin/pomodoro.mjs",

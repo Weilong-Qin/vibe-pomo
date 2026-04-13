@@ -15,8 +15,10 @@ const SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
 
 export function runInstall() {
   const nodeExec = process.execPath
-  // Quote paths containing spaces (common on Windows)
-  const q = (p) => p.includes(' ') ? `"${p}"` : p
+  // On Windows, backslashes in paths break bash (used by Claude Code hooks).
+  // Convert to forward slashes, which work in both cmd/PowerShell and Git Bash.
+  const normPath = (p) => p.replace(/\\/g, '/')
+  const q = (p) => { const n = normPath(p); return n.includes(' ') ? `"${n}"` : n }
 
   const hookDefs = {
     PreToolUse: [
@@ -109,7 +111,8 @@ function installSlashCommand() {
 function writePomodoroCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
-  const q = (p) => p.includes(' ') ? `"${p}"` : p
+  const normPath = (p) => p.replace(/\\/g, '/')
+  const q = (p) => { const n = normPath(p); return n.includes(' ') ? `"${n}"` : n }
   writeFileSync(dest, `---
 description: Start a Pomodoro focus session — agent works autonomously until timer ends
 argument-hint: "[duration e.g. 25m] [task description]"
@@ -138,7 +141,8 @@ The user has started a Pomodoro focus session and **will not be checking the scr
 function writeStatsCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
-  const q = (p) => p.includes(' ') ? `"${p}"` : p
+  const normPath = (p) => p.replace(/\\/g, '/')
+  const q = (p) => { const n = normPath(p); return n.includes(' ') ? `"${n}"` : n }
   writeFileSync(dest, `---
 description: Show Pomodoro time tracking statistics
 ---
@@ -154,7 +158,8 @@ ${q(nodeExec)} ${q(pomodoroPath)} stats
 function writeStopCommand(dest) {
   const pomodoroPath = join(__dirname, 'bin', 'pomodoro.mjs')
   const nodeExec = process.execPath
-  const q = (p) => p.includes(' ') ? `"${p}"` : p
+  const normPath = (p) => p.replace(/\\/g, '/')
+  const q = (p) => { const n = normPath(p); return n.includes(' ') ? `"${n}"` : n }
   writeFileSync(dest, `---
 description: Break (stop) the current Pomodoro session
 ---

@@ -120,7 +120,7 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # 使用默认时长
 ```
 
-计时器窗口打开，代理开始工作，你自由了。
+如果 Claude Code 跑在 `tmux` 里，vibe-pomo 会在当前 pane 上弹出一个覆盖式 popup，把正在进行的任务界面盖住，直到你结束或中断番茄钟。非 `tmux` 环境下则回退到单独的计时器终端窗口。
 
 ### 3. 会话进行中
 
@@ -177,7 +177,7 @@ Recent Sessions
 |------|------|------|
 | `defaultDurationMs` | 毫秒数 | 默认会话时长（25 分钟 = `1500000`） |
 | `decisionStrategy` | `"wait"` / `"break"` | 代理被阻塞时的策略：静默等待直到你结束会话（默认），或立即结束 |
-| `terminalEmulator` | `"auto"` / 名称 | 计时器窗口使用的终端。从 `$TERM_PROGRAM`、`$KITTY_WINDOW_ID` 等自动检测 |
+| `terminalEmulator` | `"auto"` / `"tmux"` / `"tmux-window"` / 名称 | 计时器展示方式。`"tmux"` 打开覆盖式 popup，`"tmux-window"` 使用新的 tmux window，`"auto"` 在检测到 `$TMUX` 时优先使用 popup |
 | `soundOnOvertime` | 布尔值 | 计时归零时播放提示音 |
 
 ---

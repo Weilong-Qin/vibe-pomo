@@ -1,9 +1,10 @@
 /**
  * Notification hook — queue notifications during an active Pomodoro session.
  */
-import { readLock, projectHash } from '../shared/lockfile.mjs'
+import { readLock } from '../shared/lockfile.mjs'
 import { sendAndReceive } from '../shared/ipcClient.mjs'
-import { STATE, MSG } from '../shared/protocol.mjs'
+import { MSG } from '../shared/protocol.mjs'
+import { findActiveSession } from '../shared/findActiveSession.mjs'
 
 async function readStdin() {
   return new Promise((resolve) => {
@@ -20,8 +21,6 @@ async function main() {
   if (!lock) process.exit(0)
 
   const projectDir = process.env.CLAUDE_PROJECT_DIR ?? process.cwd()
-  const hash = projectHash(projectDir)
-
   let state
   try {
     state = await sendAndReceive({ type: MSG.QUERY })
@@ -29,10 +28,7 @@ async function main() {
     process.exit(0)
   }
 
-  const active = state.sessions?.find(
-    (s) => s.projectHash === hash &&
-           (s.state === STATE.RUNNING || s.state === STATE.OVERTIME)
-  )
+  const active = findActiveSession(state.sessions, projectDir)
   if (!active) process.exit(0)
 
   const raw = await readStdin()

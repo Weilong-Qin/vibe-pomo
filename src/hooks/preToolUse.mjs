@@ -2,9 +2,10 @@
  * PreToolUse hook — auto-approve tool calls during an active Pomodoro session.
  * Transparency: if no daemon running or no active session for this project, exits 0.
  */
-import { readLock, projectHash } from '../shared/lockfile.mjs'
+import { readLock } from '../shared/lockfile.mjs'
 import { sendAndReceive } from '../shared/ipcClient.mjs'
-import { STATE, MSG } from '../shared/protocol.mjs'
+import { MSG } from '../shared/protocol.mjs'
+import { findActiveSession } from '../shared/findActiveSession.mjs'
 
 async function main() {
   const lock = readLock()
@@ -19,12 +20,7 @@ async function main() {
     process.exit(0)
   }
 
-  // Find an active session for this project
-  const hash = projectHash(projectDir)
-  const active = state.sessions?.find(
-    (s) => s.projectHash === hash &&
-           (s.state === STATE.RUNNING || s.state === STATE.OVERTIME)
-  )
+  const active = findActiveSession(state.sessions, projectDir)
 
   if (active) {
     process.stdout.write(JSON.stringify({

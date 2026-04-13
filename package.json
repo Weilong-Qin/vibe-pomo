@@ -1,6 +1,6 @@
 {
   "name": "vibe-pomo",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "You and your agent, both in flow. A Pomodoro timer for Claude Code that keeps agents working autonomously while you stay deep in focus — uninterrupted.",
   "type": "module",
   "bin": {

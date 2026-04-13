@@ -58,6 +58,7 @@ export class Session extends EventEmitter {
     return {
       sessionId: this.id,
       projectDir: this.projectDir,
+      projectHash: this.projectHash,
       task: this.task,
       plannedMs: this.plannedMs,
       state: this.#state,

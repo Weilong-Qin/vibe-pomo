@@ -34,6 +34,7 @@ export function TimerApp({
 }: TimerAppProps) {
   const { stdout } = useStdout()
   const width = stdout?.columns ?? 60
+  const isModal = process.env.POMODORO_MODAL === '1'
 
   const [timerState, setTimerState] = useState(initialState)
   const [remaining, setRemaining] = useState(initialRemaining)
@@ -97,13 +98,13 @@ export function TimerApp({
   useInput((input, key) => {
     if (phase === 'activity-input') return // TextInput handles keys in this phase
     if (phase === 'done') {
-      if (input === 'q' || key.escape) process.exit(0)
+      if (!isModal && (input === 'q' || key.escape)) process.exit(0)
       return
     }
     if (timerState === STATE.ENDED) return
     if (input === 'e' || input === 'E') sendEnd()
     if (input === 'b' || input === 'B') sendBreak()
-    if (input === 'q' || key.escape) process.exit(0)
+    if (!isModal && (input === 'q' || key.escape)) process.exit(0)
   })
 
   const isOvertime = timerState === STATE.OVERTIME
@@ -141,10 +142,10 @@ export function TimerApp({
 
   // ── Timer phase ───────────────────────────────────────────────────────────
   const keybindings = isEnded
-    ? '[Q] Quit'
+    ? (isModal ? 'Submit your notes to close the Pomodoro overlay' : '[Q] Quit')
     : isOvertime
-      ? '[E] End Session    [B] Break    [Q] Quit'
-      : '[B] Break    [Q] Quit'
+      ? (isModal ? '[E] End Session    [B] Break' : '[E] End Session    [B] Break    [Q] Quit')
+      : (isModal ? '[B] Break' : '[B] Break    [Q] Quit')
 
   return (
     <Box flexDirection="column" width={width} paddingX={2} paddingY={1}>
@@ -159,6 +160,12 @@ export function TimerApp({
       <Box marginTop={1}>
         <Text color="gray" dimColor>{keybindings}</Text>
       </Box>
+
+      {isModal && (
+        <Box marginTop={1}>
+          <Text color="gray" dimColor>The current Claude Code pane will stay covered until you end or break this Pomodoro.</Text>
+        </Box>
+      )}
     </Box>
   )
 }

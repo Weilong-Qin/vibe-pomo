@@ -62,7 +62,7 @@ export class IpcServer {
           const handler = this.#handlers['query']
           if (handler) {
             const state = await handler(msg, socket)
-            if (state) socket.write(encode({ type: EVT.STATE, ...state }))
+            if (state) socket.write(encode({ type: EVT.SNAPSHOT, ...state }))
           }
           continue
         }

@@ -2,9 +2,10 @@
  * Stop hook — called when Claude Code agent finishes.
  * Blocks the agent if a Pomodoro is active for this project.
  */
-import { readLock, projectHash } from '../shared/lockfile.mjs'
+import { readLock } from '../shared/lockfile.mjs'
 import { sendAndReceive } from '../shared/ipcClient.mjs'
-import { STATE, MSG } from '../shared/protocol.mjs'
+import { MSG } from '../shared/protocol.mjs'
+import { findActiveSession } from '../shared/findActiveSession.mjs'
 
 async function readStdin() {
   return new Promise((resolve) => {
@@ -21,8 +22,6 @@ async function main() {
   if (!lock) process.exit(0)
 
   const projectDir = process.env.CLAUDE_PROJECT_DIR ?? process.cwd()
-  const hash = projectHash(projectDir)
-
   let state
   try {
     state = await sendAndReceive({ type: MSG.QUERY })
@@ -30,10 +29,7 @@ async function main() {
     process.exit(0)
   }
 
-  const active = state.sessions?.find(
-    (s) => s.projectHash === hash &&
-           (s.state === STATE.RUNNING || s.state === STATE.OVERTIME)
-  )
+  const active = findActiveSession(state.sessions, projectDir)
   if (!active) process.exit(0)
 
   const raw = await readStdin()
@@ -60,6 +56,7 @@ async function main() {
         `Time remaining: ${resp.remainingFormatted}.`,
         'The user is not available. Do not send messages or notifications.',
         'Record any pending decisions in `.claude/pomodoro-pending.md` and wait quietly.',
+        'If the user asks how to end the session, tell them to run: pomodoro stop',
       ].join(' '),
     }) + '\n')
   }

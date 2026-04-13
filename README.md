@@ -80,7 +80,7 @@ pomodoro start 25m Refactor the auth module
 pomodoro start Refactor the auth module    # uses default duration
 ```
 
-A timer window opens in a new terminal. The agent starts working. You're free.
+If Claude Code is running inside `tmux`, vibe-pomo opens a popup over the current pane so the ongoing task stays covered until you end or break the session. Outside `tmux`, it falls back to a separate timer terminal.
 
 ```
 🍅 Pomodoro
@@ -163,7 +163,7 @@ Recent Sessions
 |--------|--------|-------------|
 | `defaultDurationMs` | ms | Default session duration (25 min = `1500000`) |
 | `decisionStrategy` | `"wait"` / `"break"` | When the agent is blocked: wait silently until you end the session (default), or end immediately |
-| `terminalEmulator` | `"auto"` / name | Terminal for the timer window. Auto-detects from `$TERM_PROGRAM`, `$KITTY_WINDOW_ID`, etc. |
+| `terminalEmulator` | `"auto"` / `"tmux"` / `"tmux-window"` / name | Timer surface. `"tmux"` opens a popup overlay, `"tmux-window"` uses a new tmux window, and `"auto"` prefers the popup when `$TMUX` is set. |
 | `soundOnOvertime` | bool | Play a sound when the timer hits zero |
 
 ---

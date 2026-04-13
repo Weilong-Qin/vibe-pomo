@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readLock, removeLock } from '../src/shared/lockfile.mjs'
@@ -110,11 +111,17 @@ async function cmdStart(args) {
 
   // Launch timer TUI in a new terminal window
   const timerEntry = join(ROOT, 'src', 'tui', 'timer', 'index.tsx')
-  const launched = await launchTerminal(TSX, timerEntry, resp.sessionId, config.terminalEmulator)
+  const launched = await launchTerminal({
+    tsx: TSX,
+    entryFile: timerEntry,
+    sessionId: resp.sessionId,
+    termPref: config.terminalEmulator,
+  })
 
   if (!launched) {
-    console.log(`\nOpen the timer in a new terminal:`)
-    console.log(`  tsx ${timerEntry} ${resp.sessionId}`)
+    console.log(`POMODORO_TIMER_NOT_LAUNCHED`)
+    console.log(`  To watch the timer: node ${TSX} ${timerEntry} ${resp.sessionId}`)
+    console.log(`  To end the session: node ${join(ROOT, 'bin', 'pomodoro.mjs')} stop`)
   }
 }
 
@@ -179,7 +186,7 @@ async function cmdStopDaemon() {
 
 // ── Terminal launch helpers ───────────────────────────────────────────────────
 
-async function launchTerminal(tsx, entryFile, sessionId, termPref) {
+async function launchTerminal({ tsx, entryFile, sessionId, termPref }) {
   const terminals = termPref && termPref !== 'auto'
     ? [termPref]
     : detectTerminals()
@@ -197,9 +204,12 @@ function detectTerminals() {
     list.push('wt', 'cmd')
     return list
   }
-  if (process.env.KITTY_WINDOW_ID)        list.push('kitty')
+  // Prefer a modal overlay when Claude Code is running inside tmux.
+  if (process.env.TMUX)                       list.push('tmux-popup')
+  if (process.env.STY)                        list.push('screen')
+  if (process.env.KITTY_WINDOW_ID)            list.push('kitty')
   if (process.env.TERM_PROGRAM === 'WezTerm') list.push('wezterm')
-  list.push('gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'alacritty', 'wezterm', 'kitty')
+  list.push('tmux-window', 'gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'alacritty', 'wezterm', 'kitty')
   return list
 }
 
@@ -212,6 +222,10 @@ function buildCmd(term, tsx, entryFile, sessionId) {
   switch (term) {
     case 'wt':             return ['wt', 'new-tab', '--', 'cmd.exe', '/k', inner]
     case 'cmd':            return ['cmd.exe', '/c', `start cmd.exe /k "${inner}"`]
+    case 'tmux':
+    case 'tmux-popup':     return buildTmuxPopupCmd(tsx, entryFile, sessionId)
+    case 'tmux-window':    return ['tmux', 'new-window', inner]
+    case 'screen':         return ['screen', '-X', 'screen', 'bash', '-c', inner]
     case 'gnome-terminal': return ['gnome-terminal', '--', 'bash', '-c', inner]
     case 'xfce4-terminal': return ['xfce4-terminal', '-e', inner]
     case 'konsole':        return ['konsole', '-e', inner]
@@ -244,13 +258,51 @@ function isInsideClaudeCode() {
 
 function spawnWatcher(sessionId) {
   const watcherPath = join(ROOT, 'src', 'watcher.mjs')
-  // Watch the grandparent process (Claude Code's Node.js process)
-  const watchPid = process.ppid
+  const watchPid = getWatchPid()
   const child = spawn(process.execPath, [watcherPath, String(watchPid), sessionId], {
     detached: true,
     stdio: 'ignore',
   })
   child.unref()
+}
+
+function buildTmuxPopupCmd(tsx, entryFile, sessionId) {
+  const timerCmd = [
+    'POMODORO_MODAL=1',
+    shellQuote(process.execPath),
+    shellQuote(tsx),
+    shellQuote(entryFile),
+    shellQuote(sessionId),
+  ].join(' ')
+
+  return [
+    'tmux',
+    'display-popup',
+    '-E',
+    '-w', '90%',
+    '-h', '90%',
+    '-T', 'Pomodoro',
+    `bash -lc ${shellQuote(timerCmd)}`,
+  ]
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`
+}
+
+function getWatchPid() {
+  if (isWin) return process.ppid
+
+  try {
+    const out = execFileSync('ps', ['-o', 'ppid=', '-p', String(process.ppid)], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    const ppid = Number.parseInt(out, 10)
+    if (Number.isInteger(ppid) && ppid > 1) return ppid
+  } catch {}
+
+  return process.ppid
 }
 
 function formatMs(ms) {

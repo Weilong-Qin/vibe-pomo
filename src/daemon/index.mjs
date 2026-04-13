@@ -21,6 +21,8 @@ const sessions = new Map()
 
 /** sessionId → DB row id */
 const dbIds = new Map()
+/** sessionId → DB row id for sessions that already ended but may still receive user activity */
+const finishedDbIds = new Map()
 
 // ── IPC Handlers ─────────────────────────────────────────────────────────────
 
@@ -78,9 +80,10 @@ ipc.on(MSG.SESSION_BREAK, (msg) => {
 })
 
 ipc.on(MSG.SESSION_UPDATE_ACTIVITY, (msg) => {
-  const dbId = dbIds.get(msg.sessionId)
+  const dbId = dbIds.get(msg.sessionId) ?? finishedDbIds.get(msg.sessionId)
   if (!dbId) return { error: 'session not found' }
   updateSessionActivity(dbId, { userActivity: msg.userActivity })
+  finishedDbIds.delete(msg.sessionId)
   return { ok: true }
 })
 
@@ -163,6 +166,10 @@ function wireSessionEvents(session) {
     }
 
     sessions.delete(sessionId)
+    if (dbId) {
+      finishedDbIds.set(sessionId, dbId)
+      setTimeout(() => finishedDbIds.delete(sessionId), 30 * 60 * 1000).unref()
+    }
     dbIds.delete(sessionId)
 
     ipc.broadcast({ type: EVT.SESSION_ENDED, sessionId, status, actualMs })

@@ -109,9 +109,27 @@ argument-hint: "[duration e.g. 25m] [task description]"
 node ${pomodoroPath} start $ARGUMENTS
 \`\`\`
 
-## Step 2: Work autonomously during the focus session
+## Step 2: Check if timer window launched
+
+Read the output from Step 1 carefully.
+
+If the output contains **\`POMODORO_TIMER_NOT_LAUNCHED\`**, the system could not open a separate timer window (common in SSH, VSCode, or headless environments). In this case you MUST tell the user BEFORE doing any work:
+
+> ⚠️ **No timer window could be opened automatically.**
+>
+> Run one of these in another terminal to control your Pomodoro:
+> - **Watch timer:** (the command shown on the "To watch" line above)
+> - **End session:** (the command shown on the "To end" line above)
+>
+> I'll now work on your task. The session will stay active until you run the stop command.
+
+After telling the user that once, continue immediately. Do not wait for a reply.
+
+## Step 3: Work autonomously during the focus session
 
 The user has started a Pomodoro focus session and **will not be checking the screen** until the timer ends. Do not interrupt them.
+
+**Current project**: Check \`\$CLAUDE_PROJECT_DIR\` or run \`pwd\` — work only on files in that directory. Do not reference or modify any other project.
 
 **Task**: $ARGUMENTS
 
